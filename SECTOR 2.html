@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sistema de Recaudación y Arrime - eje</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- SheetJS para exportar a Excel -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <!-- html2canvas para descargar tablas como imagen PNG -->
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  
+  <style>
+    /* Estilos limpios sin flexbox interno para compatibilidad exacta con html2canvas */
+    .tabla-eje-oficial {
+      border-collapse: collapse !important;
+      font-family: Arial, sans-serif !important;
+      width: 100% !important;
+      table-layout: fixed !important;
+      border: 1px solid #000000 !important;
+      background-color: #ffffff !important;
+    }
+    
+    .tabla-eje-oficial th, 
+    .tabla-eje-oficial td {
+      border: 1px solid #000000 !important;
+      box-sizing: border-box !important;
+      margin: 0 !important;
+      padding: 5px 6px !important;
+      font-size: 13px !important;
+      vertical-align: middle !important;
+      line-height: 1.25 !important;
+      text-align: center !important; /* FORZADO GLOBAL PARA TODAS LAS CELDAS DE ESTA TABLA */
+    }
+
+    /* Clases de alineación explícitas */
+    .text-center-cell {
+      text-align: center !important;
+    }
+
+    .text-right-cell {
+      text-align: right !important;
+      padding-right: 10px !important;
+    }
+
+    .text-left-cell {
+      text-align: left !important;
+      padding-left: 8px !important;
+    }
+  </style>
+</head>
+<body class="bg-gray-100 font-sans text-gray-800 pb-10">
+
+  <!-- ENCABEZADO PRINCIPAL -->
+  <header class="bg-emerald-700 text-white p-6 shadow-md">
+    <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+      <!-- Botón para regresar al menú de selección -->
+<a href="sistema.html" 
+   class="inline-flex items-center gap-2 px-3.5 py-2 bg-gray-100 hover:bg-emerald-100 text-gray-700 hover:text-emerald-800 text-xs font-bold rounded-lg border border-gray-300 transition-colors shadow-sm no-print">
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4">
+    <path stroke-linecap="round" stroke-linejoin="round" d="M9 15 3 9m0 0 6-6M3 9h12a6 6 0 0 1 0 12h-3" />
+  </svg>
+  <span>Cambiar Sector</span>
+</a>
+
+      <div>
+        <h1 class="text-2xl font-bold uppercase tracking-wide">TU EMPRESA</h1>
+        <p class="text-emerald-100 text-sm">Control de reportes diarios</p>
+      </div>
+      <div class="bg-emerald-800 p-3 rounded-lg text-xs space-y-1 border border-emerald-600">
+        <p><span class="font-bold">SECTOR:</span> SECTOR 2</p>
+        <p><span class="font-bold">RESPONSABLE:</span> NOMBRE RESPONSABLE</p>
+        <p><span class="font-bold">META DEL MES:</span> 000.00</p>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto mt-6 px-4 space-y-6">
+
+    <!-- BARRA DE NAVEGACIÓN DE PESTAÑAS (EN SU PROPIO CONTENEDOR TARJETA) -->
+    <div class="bg-white rounded-xl shadow-md border border-gray-200 p-2">
+      <div class="flex border-b border-gray-200">
+        <button id="tabActaBtn" onclick="cambiarPestana('acta')" class="py-3 px-6 font-bold text-sm border-b-2 border-emerald-600 text-emerald-800 flex items-center gap-2 focus:outline-none transition-all">
+          📝 Registrar Acta
+        </button>
+        <button id="tabUnidadBtn" onclick="cambiarPestana('unidad')" class="py-3 px-6 font-bold text-sm border-b-2 border-transparent text-gray-500 hover:text-gray-700 flex items-center gap-2 focus:outline-none transition-all">
+          ⚙️ Registrar Unidad
+        </button>
+      </div>
+    </div>
+
+    <!-- ==================== PESTAÑA 1: REGISTRAR ACTA ==================== -->
+    <div id="pestanaActa" class="space-y-6">
+
+      <!-- FORMULARIO DE REGISTRO RÁPIDO -->
+      <section class="bg-white p-6 rounded-xl shadow-md border border-gray-200">
+        <h2 class="text-lg font-bold text-gray-700 mb-4 border-b pb-2 flex items-center gap-2">
+          <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+          Registrar Nueva Acta
+        </h2>
+
+        <form id="arrimeForm" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          <div>
+            <label class="block text-xs font-semibold text-gray-600 mb-1">Fecha</label>
+            <input type="date" id="fecha" required class="w-full border border-gray-300 rounded p-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+          </div>
+
+          <div class="lg:col-span-2">
+            <label class="block text-xs font-semibold text-gray-600 mb-1">Unidad</label>
+            <select id="unidadSelect" required class="w-full border border-gray-300 rounded p-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-white">
+              <option value="">-- Seleccionar Unidad --</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-gray-600 mb-1">Identificación</label>
+            <input type="text" id="identificacion" readonly class="w-full border border-gray-200 bg-gray-100 rounded p-2 text-sm text-gray-600 font-medium">
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-gray-600 mb-1">Tipo de Unidad</label>
+            <input type="text" id="tipo" readonly class="w-full border border-gray-200 bg-gray-100 rounded p-2 text-sm text-gray-600 font-medium">
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-gray-600 mb-1">N° Correlativo</label>
+            <input type="text" id="acta" readonly class="w-full border border-emerald-300 bg-emerald-50 font-bold text-emerald-900 rounded p-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-gray-600 mb-1">Cantidad</label>
+            <input type="number" step="0.01" id="peso" placeholder="0.00" autofocus required class="w-full border border-gray-300 rounded p-2 text-sm font-bold text-gray-800 focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+          </div>
+
+          <div class="md:col-span-3 lg:col-span-6 flex justify-end gap-3 mt-2">
+            <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 px-6 rounded shadow transition text-sm">
+              + GUARDAR REGISTRO
+            </button>
+          </div>
+        </form>
+      </section>
+
+      <!-- PANEL DE TABLAS -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+        <!-- DETALLE TRANSACCIONAL -->
+        <section class="lg:col-span-2 bg-white p-6 rounded-xl shadow-md border border-gray-200">
+          <div class="flex flex-wrap justify-between items-center gap-2 mb-4 border-b pb-2">
+            <h3 class="text-base font-bold text-gray-700">Resumen Recaudación Diaria (Detalle)</h3>
+            <div class="flex gap-2">
+              <button id="btnImagenDetalle" class="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-1.5 rounded font-semibold flex items-center gap-1 shadow">
+                📷 Imagen PNG
+              </button>
+              <button id="btnExportarDetalle" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-3 py-1.5 rounded font-semibold flex items-center gap-1 shadow">
+                📊 Exportar Excel
+              </button>
+            </div>
+          </div>
+
+          <div id="contenedorTablaDetalle" class="overflow-x-auto p-3 bg-white rounded">
+            <table class="w-full border-collapse border border-black font-sans text-xs bg-white text-black">
+              <thead>
+                <tr>
+                  <th colspan="8" class="bg-white py-3 px-4 border border-black">
+                  </th>
+                </tr>
+                <tr>
+                  <th colspan="8" class="text-center font-black text-sm uppercase bg-white py-1.5 border border-black text-black">
+                    SECTOR 2
+                  </th>
+                </tr>
+                <tr>
+                  <th colspan="8" class="text-left font-bold text-xs bg-white py-1 px-2 border border-black text-black">
+                    META DEL MES: 000 
+                  </th>
+                </tr>
+                <tr>
+                  <th colspan="8" class="text-left font-bold text-xs bg-white py-1 px-2 border border-black text-black">
+                    NOMBRE DEL RESPONSABLE: 
+                  </th>
+                </tr>
+                <tr>
+                  <th colspan="8" class="text-center font-black text-sm uppercase bg-white py-1.5 border border-black text-black">
+                    RESUMEN DE CANTIDAD
+                  </th>
+                </tr>
+                <tr style="background-color: #FFFF00;" class="font-extrabold text-black uppercase">
+                  <th class="p-2 border border-black text-center w-[4%]">N°</th>
+                  <th class="p-2 border border-black text-center w-[10%]">FECHA</th>
+                  <th class="p-2 border border-black text-center w-[16%]">NOMBRE DE LA UNIDAD</th>
+                  <th class="p-2 border border-black text-center w-[15%]">IDENTIFICACION</th>
+                  <th class="p-2 border border-black text-center w-[12%]">TIPO DE UNIDAD</th>
+                  <th class="p-2 border border-black text-center w-[30%]">CORRELATIVO</th>
+                  <th class="p-2 border border-black text-center w-[8%]">CANTIDAD</th>
+                  <th class="p-2 border border-black text-center w-[5%] no-print">ACCIÓN</th>
+                </tr>
+              </thead>
+              <tbody id="tablaDetalle" class="bg-white text-black font-semibold"></tbody>
+              <tfoot>
+                <tr style="background-color: #FFE599;" class="font-extrabold text-black text-xs">
+                  <td colspan="6" class="p-2 border border-black"></td>
+                  <td id="totalGramosDetalle" class="p-2 border border-black text-center font-black text-sm">0</td>
+                  <td class="border border-black no-print"></td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </section>
+
+        <!-- CONSOLIDADO MENSUAL -->
+        <section class="bg-white p-6 rounded-xl shadow-md border border-gray-200">
+          <div class="flex flex-wrap justify-between items-center gap-2 mb-4 border-b pb-2">
+            <div>
+              <h3 class="text-base font-bold text-gray-700">Consolidado Mensual</h3>
+              <div class="mt-1 flex items-center gap-1.5">
+                <label for="mesFiltro" class="text-xs font-semibold text-gray-500">Seleccionar Mes:</label>
+                <input type="month" id="mesFiltro" class="border border-gray-300 rounded px-2 py-0.5 text-xs font-medium focus:ring-1 focus:ring-emerald-500 focus:outline-none bg-gray-50">
+              </div>
+            </div>
+            <div class="flex flex-wrap gap-1.5">
+              <button id="btnImagenHastaHoy" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs px-2.5 py-1.5 rounded font-semibold flex items-center gap-1 shadow">
+                📷 Hasta Hoy
+              </button>
+              <button id="btnImagenConsolidado" class="bg-blue-600 hover:bg-blue-700 text-white text-xs px-2.5 py-1.5 rounded font-semibold flex items-center gap-1 shadow">
+                📷 Mes Completo
+              </button>
+            </div>
+          </div>
+
+          <div class="flex justify-center">
+            <div id="contenedorTablaConsolidado" class="bg-white p-4 inline-block" style="width: 380px;">
+              <table class="tabla-eje-oficial">
+                <thead>
+                  <tr>
+                    <th colspan="3" class="text-center-cell font-extrabold text-sm uppercase" style="background-color: #a2d08a; padding: 8px !important;">
+                      SECTOR 2
+                    </th>
+                  </tr>
+                  <tr>
+                    <th colspan="2" class="text-center-cell font-bold uppercase" style="padding: 8px !important;">
+                      METAS DEL MES
+                    </th>
+                    <th class="text-center-cell font-extrabold text-sm" style="background-color: #facc15; padding: 8px !important;">
+                      <span id="metaMesTexto">000,00</span>
+                    </th>
+                  </tr>
+                  <tr>
+                    <th colspan="2" class="text-center-cell font-bold uppercase" style="padding: 8px !important;">
+                      RESPONSABLE:<br>
+                    </th>
+                    <th class="text-center-cell font-bold uppercase" style="padding: 8px !important;">
+                      <span id="encabezadoMesTexto">MES: JULIO 2026</span>
+                    </th>
+                  </tr>
+                  <tr class="bg-white font-bold uppercase">
+                    <th style="width: 22%;" class="text-center-cell">DIA</th>
+                    <th style="width: 39%;" class="text-center-cell">CANTIDAD<br>REPORTES</th>
+                    <th style="width: 39%;" class="text-center-cell">CANTIDAD<br>RECIBIDA</th>
+                  </tr>
+                </thead>
+                <tbody id="tablaConsolidado" class="bg-white"></tbody>
+                <tfoot>
+                  <tr style="background-color: #facc15;" class="font-extrabold text-black">
+                    <td class="text-center-cell"></td>
+                    <td id="totalCantidadcant" class="text-center-cell font-bold">0</td>
+                    <td id="totalGramosConsolidado" class="text-center-cell font-bold">0,0</td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
+        </section>
+
+      </div>
+    </div>
+
+    <!-- ==================== PESTAÑA 2: REGISTRAR UNIDAD ==================== -->
+    <div id="pestanaUnidad" class="hidden space-y-6">
+
+      <!-- FORMULARIO NUEVA UNIDAD -->
+      <section class="bg-white p-6 rounded-xl shadow-md border border-gray-200">
+        <h2 class="text-lg font-bold text-gray-700 mb-4 border-b pb-2 flex items-center gap-2">
+          ⚙️ Registrar Nueva Unidad
+        </h2>
+
+        <form onsubmit="agregarNuevaUnidad(event)" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label class="block text-xs font-bold text-gray-600 mb-1">Nombre de la Unidad</label>
+            <input type="text" id="nuevoNombre" placeholder="Ej: UNIDAD 1" required class="w-full border border-gray-300 p-2 text-sm rounded focus:outline-none focus:ring-2 focus:ring-emerald-500 uppercase">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-gray-600 mb-1">Identificación</label>
+            <input type="text" id="nuevoRif" placeholder="Ej: 1234552" required class="w-full border border-gray-300 p-2 text-sm rounded focus:outline-none focus:ring-2 focus:ring-emerald-500 uppercase">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-gray-600 mb-1">Tipo de Unidad</label>
+            <select id="nuevoTipo" class="w-full border border-gray-300 p-2 text-sm rounded focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white">
+              <option value="1">1</option>
+              <option value="2">2</option>
+              <option value="3">3</option>
+              <option value="4">OTRO</option>
+            </select>
+          </div>
+          <div class="md:col-span-3 flex justify-end mt-2">
+            <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-6 rounded shadow transition text-sm">
+              + REGISTRAR EN BASE DE DATOS
+            </button>
+          </div>
+        </form>
+      </section>
+
+      <!-- TABLA CONTROL DE UNIDADES REGISTRADAS -->
+      <section class="bg-white p-6 rounded-xl shadow-md border border-gray-200">
+        <h3 class="text-base font-bold text-gray-700 mb-4 border-b pb-2">Unidades Registradas en el Sistema</h3>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse border border-gray-300 text-xs">
+            <thead class="bg-gray-100 text-gray-800 uppercase font-bold">
+              <tr>
+                <th class="p-2.5 border border-gray-300 text-center">Nombre de la Unidad</th>
+                <th class="p-2.5 border border-gray-300 text-center">Identificación</th>
+                <th class="p-2.5 border border-gray-300 text-center">Tipo</th>
+                <th class="p-2.5 border border-gray-300 text-center">Estatus</th>
+                <th class="p-2.5 border border-gray-300 text-center">Acción</th>
+                <th class="p-2.5 border border-gray-300 text-center">Eliminar</th>
+              </tr>
+            </thead>
+            <tbody id="tablaCatalogoBody" class="divide-y divide-gray-200"></tbody>
+          </table>
+        </div>
+      </section>
+
+    </div>
+
+  </main>
+
+<script>
+  // --- CONFIGURACIÓN ESPECÍFICA DEL SECTOR 2 ---
+ const SECTOR_CONFIG = {
+    claveStorage: "SECTOR_2",
+    codigoActa: "EJEMPLO",
+    meta: "000",
+    responsable: "NOMBRE RESPONSABLE"
+  };
+
+  // --- LÓGICA DE NAVEGACIÓN ENTRE PESTAÑAS ---
+  function cambiarPestana(pestana) {
+    const tabActaBtn = document.getElementById('tabActaBtn');
+    const tabUnidadBtn = document.getElementById('tabUnidadBtn');
+    const pestanaActa = document.getElementById('pestanaActa');
+    const pestanaUnidad = document.getElementById('pestanaUnidad');
+
+    if (pestana === 'acta') {
+      pestanaActa.classList.remove('hidden');
+      pestanaUnidad.classList.add('hidden');
+
+      tabActaBtn.className = "py-2.5 px-5 font-bold text-sm border-b-2 border-emerald-600 text-emerald-800 flex items-center gap-2 focus:outline-none transition";
+      tabUnidadBtn.className = "py-2.5 px-5 font-bold text-sm border-b-2 border-transparent text-gray-500 hover:text-gray-700 flex items-center gap-2 focus:outline-none transition";
+    } else {
+      pestanaActa.classList.add('hidden');
+      pestanaUnidad.classList.remove('hidden');
+
+      tabUnidadBtn.className = "py-2.5 px-5 font-bold text-sm border-b-2 border-emerald-600 text-emerald-800 flex items-center gap-2 focus:outline-none transition";
+      tabActaBtn.className = "py-2.5 px-5 font-bold text-sm border-b-2 border-transparent text-gray-500 hover:text-gray-700 flex items-center gap-2 focus:outline-none transition";
+    }
+  }
+
+  // --- BASE DE DATOS Y CATALOGO INICIAL ---
+  const catalogoBaseInicial = [
+    
+  ];
+
+  let catalogoUnidades = JSON.parse(localStorage.getItem(`eje_catalogo_unidades_${SECTOR_CONFIG.claveStorage}`)) || catalogoBaseInicial;
+  let registros = JSON.parse(localStorage.getItem(`eje_cant_${SECTOR_CONFIG.claveStorage}`)) || [];
+
+  const fechaInput = document.getElementById('fecha');
+  const mesFiltro = document.getElementById('mesFiltro');
+  const unidadSelect = document.getElementById('unidadSelect');
+  const identificacionInput = document.getElementById('identificacion');
+  const tipoInput = document.getElementById('tipo');
+  const actaInput = document.getElementById('acta');
+  const form = document.getElementById('arrimeForm');
+
+  function guardarCatalogo() {
+    localStorage.setItem(`eje_catalogo_unidades_${SECTOR_CONFIG.claveStorage}`, JSON.stringify(catalogoUnidades));
+    cargarSelectUnidades();
+    renderTablaCatalogo();
+  }
+
+  function cargarSelectUnidades() {
+    unidadSelect.innerHTML = '<option value="">-- Seleccionar Unidad --</option>';
+    catalogoUnidades.filter(u => u.activo).forEach(u => {
+      const opt = document.createElement('option');
+      opt.value = u.nombre;
+      opt.textContent = u.nombre;
+      unidadSelect.appendChild(opt);
+    });
+  }
+
+  unidadSelect.addEventListener('change', (e) => {
+    const seleccionada = catalogoUnidades.find(u => u.nombre === e.target.value);
+    if (seleccionada) {
+      identificacionInput.value = seleccionada.rif;
+      tipoInput.value = seleccionada.tipo;
+    } else {
+      identificacionInput.value = '';
+      tipoInput.value = '';
+    }
+  });
+
+  function agregarNuevaUnidad(e) {
+    e.preventDefault();
+    const nombre = document.getElementById('nuevoNombre').value.trim().toUpperCase();
+    const rif = document.getElementById('nuevoRif').value.trim().toUpperCase();
+    const tipo = document.getElementById('nuevoTipo').value.toUpperCase();
+
+    if (!nombre || !rif) {
+      alert("Por favor complete todos los campos");
+      return;
+    }
+
+    const nueva = {
+      id: Date.now(),
+      nombre,
+      rif,
+      tipo,
+      activo: true
+    };
+
+    catalogoUnidades.push(nueva);
+    guardarCatalogo();
+
+    document.getElementById('nuevoNombre').value = '';
+    document.getElementById('nuevoRif').value = '';
+    alert('¡Unidad de producción registrada con éxito!');
+  }
+
+  function toggleEstadoUnidad(id) {
+    const unidad = catalogoUnidades.find(u => u.id === id);
+    if (unidad) {
+      unidad.activo = !unidad.activo;
+      guardarCatalogo();
+    }
+  }
+
+  function eliminarUnidad(id) {
+    const unidad = catalogoUnidades.find(u => u.id === id);
+    if (!unidad) return;
+
+    const confirmar = confirm(`¿Estás seguro de que deseas eliminar permanentemente la unidad "${unidad.nombre}"?`);
+    if (confirmar) {
+      catalogoUnidades = catalogoUnidades.filter(u => u.id !== id);
+      guardarCatalogo();
+    }
+  }
+
+  function renderTablaCatalogo() {
+    const tbody = document.getElementById('tablaCatalogoBody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+
+    catalogoUnidades.forEach(u => {
+      const tr = document.createElement('tr');
+      tr.className = "hover:bg-gray-50 transition-colors";
+      tr.innerHTML = `
+        <td class="p-2.5 border border-gray-300 font-bold text-gray-800 text-center">${u.nombre}</td>
+        <td class="p-2.5 border border-gray-300 text-gray-600 text-center">${u.rif}</td>
+        <td class="p-2.5 border border-gray-300 text-gray-600 text-center">${u.tipo}</td>
+        <td class="p-2.5 border border-gray-300 text-center text-center">
+          <span class="px-2 py-1 rounded text-[10px] font-bold ${u.activo ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
+            ${u.activo ? 'ACTIVA' : 'INACTIVA'}
+          </span>
+        </td>
+        <td class="p-2.5 border border-gray-300 text-center">
+          <button onclick="toggleEstadoUnidad(${u.id})" class="px-2.5 py-1 text-xs rounded font-semibold transition ${u.activo ? 'bg-amber-100 text-amber-800 hover:bg-amber-200' : 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200'}">
+            ${u.activo ? 'Deshabilitar' : 'Habilitar'}
+          </button>
+        </td>
+        <td class="p-2.5 border border-gray-300 text-center">
+          <button onclick="eliminarUnidad(${u.id})" class="text-red-600 hover:text-red-800 font-black text-sm px-2 py-1 rounded hover:bg-red-50 transition" title="Eliminar de la base de datos">
+            ✕
+          </button>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  function obtenerSiguienteActa() {
+    const fechaVal = fechaInput.value;
+    let mes, year;
+
+    if (fechaVal) {
+      const partes = fechaVal.split('-');
+      year = partes[0];
+      mes = partes[1].padStart(2, '0');
+    } else {
+      const hoy = new Date();
+      year = hoy.getFullYear();
+      mes = (hoy.getMonth() + 1).toString().padStart(2, '0');
+    }
+
+    const sufijoMesAno = `-${mes}-${year}`;
+    const registrosDelMes = registros.filter(r => r.acta && r.acta.endsWith(sufijoMesAno));
+
+    let ultimoNumero = 0;
+    if (registrosDelMes.length > 0) {
+      const numeros = registrosDelMes.map(r => {
+        const match = r.acta.match(/AE-(\d{4})-/);
+        return match ? parseInt(match[1], 10) : 0;
+      });
+      ultimoNumero = Math.max(...numeros);
+    }
+
+    const siguienteNum = (ultimoNumero + 1).toString().padStart(4, '0');
+    return `${siguienteNum}-${mes}-${year}`;
+  }
+
+  function actualizarCampoActa() {
+    actaInput.value = obtenerSiguienteActa();
+  }
+
+  fechaInput.addEventListener('change', () => {
+    if (fechaInput.value) {
+      mesFiltro.value = fechaInput.value.slice(0, 7);
+    }
+    actualizarCampoActa();
+    renderTablaDetalle();
+    renderTablaConsolidado();
+  });
+
+  mesFiltro.addEventListener('change', () => {
+    renderTablaDetalle();
+    renderTablaConsolidado();
+  });
+
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+
+    const nuevoRegistro = {
+      id: Date.now(),
+      fecha: fechaInput.value,
+      unidad: unidadSelect.value,
+      identificacion: identificacionInput.value,
+      tipo: tipoInput.value,
+      acta: `CORRELATIVO-${SECTOR_CONFIG.codigoActa}-${actaInput.value}`,
+      peso: parseFloat(document.getElementById('peso').value) || 0
+    };
+
+    registros.push(nuevoRegistro);
+    guardarYRenderizar();
+
+    document.getElementById('peso').value = '';
+    unidadSelect.value = '';
+    identificacionInput.value = '';
+    tipoInput.value = '';
+    actualizarCampoActa();
+    unidadSelect.focus();
+  });
+
+  function eliminarRegistro(id) {
+    registros = registros.filter(r => r.id !== id);
+    guardarYRenderizar();
+    actualizarCampoActa();
+  }
+
+  function guardarYRenderizar() {
+    localStorage.setItem(`eje_cant_${SECTOR_CONFIG.claveStorage}`, JSON.stringify(registros));
+    renderTablaDetalle();
+    renderTablaConsolidado();
+  }
+
+  function formatearFechaCorta(fechaStr) {
+    if(!fechaStr) return '';
+    const [year, month, day] = fechaStr.split('-');
+    return `${parseInt(day, 10)}/${parseInt(month, 10)}/${year}`;
+  }
+
+  function renderTablaDetalle() {
+    const tablaDetalle = document.getElementById('tablaDetalle');
+    tablaDetalle.innerHTML = '';
+    let sumaTotal = 0;
+
+    const mesSeleccionado = mesFiltro.value;
+    const registrosFiltrados = registros.filter(r => !mesSeleccionado || r.fecha.startsWith(mesSeleccionado));
+
+    registrosFiltrados.forEach((r, idx) => {
+      sumaTotal += r.peso;
+      const fila = document.createElement('tr');
+      fila.innerHTML = `
+        <td class="p-2 border border-black text-center font-gray">${idx + 1}</td>
+        <td class="p-2 border border-black text-center font-gray">${formatearFechaCorta(r.fecha)}</td>
+        <td class="p-2 border border-black text-center font-gray uppercase">${r.unidad}</td>
+        <td class="p-2 border border-black text-center font-gray">${r.identificacion}</td>
+        <td class="p-2 border border-black text-center font-gray uppercase">${r.tipo}</td>
+        <td class="p-2 border border-black text-center font-gray">${r.acta}</td>
+        <td class="p-2 border border-black text-center font-gray">${Number.isInteger(r.peso) ? r.peso : r.peso.toFixed(2)}</td>
+        <td class="p-2 border border-black text-center no-print">
+          <button onclick="eliminarRegistro(${r.id})" class="text-red-600 hover:text-red-800 font-black text-sm" title="Eliminar">
+            ✕
+          </button>
+        </td>
+      `;
+      tablaDetalle.appendChild(fila);
+    });
+
+    document.getElementById('totalGramosDetalle').textContent = Number.isInteger(sumaTotal) ? sumaTotal : sumaTotal.toFixed(2);
+  }
+
+  function renderTablaConsolidado(limiteDia = null) {
+    const tablaConsolidado = document.getElementById('tablaConsolidado');
+    tablaConsolidado.innerHTML = '';
+    let totalcant = 0;
+    let totalGramos = 0;
+
+    const mesSeleccionado = mesFiltro.value;
+    let year, month;
+
+    if (mesSeleccionado) {
+      const partes = mesSeleccionado.split('-');
+      year = parseInt(partes[0], 10);
+      month = parseInt(partes[1], 10);
+    } else {
+      const hoy = new Date();
+      year = hoy.getFullYear();
+      month = hoy.getMonth() + 1;
+    }
+
+    const diasEnMes = new Date(year, month, 0).getDate();
+    const maxDia = limiteDia ? Math.min(limiteDia, diasEnMes) : diasEnMes;
+
+    const fechaObjeto = new Date(year, month - 1, 1);
+    const nombreMes = fechaObjeto.toLocaleString('es-ES', { month: 'long' });
+    document.getElementById('encabezadoMesTexto').textContent = `MES: ${nombreMes.toUpperCase()} ${year}`;
+
+    const registrosDelMes = registros.filter(r => {
+      if (!r.fecha) return false;
+      const [rYear, rMonth] = r.fecha.split('-');
+      return parseInt(rYear, 10) === year && parseInt(rMonth, 10) === month;
+    });
+
+    const conteoPorDia = {};
+    const gramosPorDia = {};
+
+    registrosDelMes.forEach(r => {
+      const dia = parseInt(r.fecha.split('-')[2], 10);
+      conteoPorDia[dia] = (conteoPorDia[dia] || 0) + 1;
+      gramosPorDia[dia] = (gramosPorDia[dia] || 0) + r.peso;
+    });
+
+    for (let dia = 1; dia <= maxDia; dia++) {
+      const cant = conteoPorDia[dia] || 0;
+      const gr = gramosPorDia[dia] || 0;
+
+      totalcant += cant;
+      totalGramos += gr;
+
+      const fila = document.createElement('tr');
+      fila.innerHTML = `
+        <td class="text-center p-2 border border-black font-bold">${dia}</td>
+        <td class="text-center p-2 border border-black">${cant}</td>
+        <td class="text-center p-2 border border-black">${gr > 0 ? gr.toFixed(1).replace('.', ',') : '0,0'}</td>
+      `;
+      tablaConsolidado.appendChild(fila);
+    }
+
+    document.getElementById('totalCantidadcant').textContent = totalcant;
+    document.getElementById('totalGramosConsolidado').textContent = totalGramos.toFixed(1).replace('.', ',');
+  }
+
+  // --- DESCARGA CON HTML2CANVAS ---
+  function descargarComoImagen(elementId, nombreArchivo, hastaHoy = false) {
+    const contenedor = document.getElementById(elementId);
+    const diaHoy = new Date().getDate();
+
+    if (hastaHoy) {
+      renderTablaConsolidado(diaHoy);
+    }
+
+    const botonesAccion = contenedor.querySelectorAll('.no-print');
+    botonesAccion.forEach(btn => btn.style.display = 'none');
+
+    html2canvas(contenedor, { 
+      scale: 3, 
+      backgroundColor: "#ffffff",
+      useCORS: true,
+      logging: false,
+      x: 0, 
+      y: 0, 
+      scrollX: 0,
+      scrollY: 0,
+      width: contenedor.offsetWidth, 
+      height: contenedor.offsetHeight
+    }).then(canvas => {
+      const link = document.createElement('a');
+      const sufijo = hastaHoy ? `_hasta_dia_${diaHoy}` : '_mes_completo';
+      link.download = `${nombreArchivo}${sufijo}_${mesFiltro.value || 'mes'}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+
+      botonesAccion.forEach(btn => btn.style.display = '');
+
+      if (hastaHoy) {
+        renderTablaConsolidado();
+      }
+    });
+  }
+
+  document.getElementById('btnImagenDetalle').addEventListener('click', () => {
+    descargarComoImagen('contenedorTablaDetalle', `Recaudacion_Detalle_eje_${SECTOR_CONFIG.claveStorage}`);
+  });
+
+  document.getElementById('btnImagenConsolidado').addEventListener('click', () => {
+    descargarComoImagen('contenedorTablaConsolidado', `Consolidado_Mensual_${SECTOR_CONFIG.claveStorage}`, false);
+  });
+
+  document.getElementById('btnImagenHastaHoy').addEventListener('click', () => {
+    descargarComoImagen('contenedorTablaConsolidado', `Consolidado_Mensual_${SECTOR_CONFIG.claveStorage}`, true);
+  });
+
+  // --- EXPORTAR A EXCEL ---
+  document.getElementById('btnExportarDetalle').addEventListener('click', () => {
+    const mesSeleccionado = mesFiltro.value;
+    const registrosAExportar = registros.filter(r => !mesSeleccionado || r.fecha.startsWith(mesSeleccionado));
+
+    if (registrosAExportar.length === 0) {
+      alert('No hay datos registrados para exportar en el mes seleccionado.');
+      return;
+    }
+
+    const aoaData = [
+      [`SECTOR: ${SECTOR_CONFIG.codigoActa}`],
+      [`META DEL MES: ${SECTOR_CONFIG.meta}`],
+      [`NOMBRE DEL RESPONSABLE : ${SECTOR_CONFIG.responsable}`],
+      ["RESUMEN RECAUDACIÓN DIARIA PEQUEÑA MINERIA"],
+      [],
+      [
+        "N°",
+        "FECHA",
+        "NOMBRE DE LA UNIDAD DE PRODUCCIÓN",
+        "RIF/CEDULA DE IDENTIDAD",
+        "TIPO DE UNIDAD DE PRODUCCION",
+        "N° DE ACTA DE ARRIME",
+        "PESO BRUTO (GRS)"
+      ]
+    ];
+
+    let sumaTotal = 0;
+    registrosAExportar.forEach((r, idx) => {
+      sumaTotal += r.peso;
+      aoaData.push([
+        idx + 1,
+        formatearFechaCorta(r.fecha),
+        r.unidad,
+        r.identificacion,
+        r.tipo,
+        r.acta,
+        r.peso
+      ]);
+    });
+
+    aoaData.push(["", "", "", "", "", "", sumaTotal]);
+
+    const worksheet = XLSX.utils.aoa_to_sheet(aoaData);
+
+    worksheet['!cols'] = [
+      { wch: 6 },
+      { wch: 12 },
+      { wch: 40 },
+      { wch: 22 },
+      { wch: 26 },
+      { wch: 38 },
+      { wch: 18 }
+    ];
+
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "RECAUDACIÓN DIARIA");
+    XLSX.writeFile(workbook, `RESUMEN_RECAUDACION_DIARIA_${SECTOR_CONFIG.claveStorage}_${mesSeleccionado || 'General'}.xlsx`);
+  });
+
+  // --- INICIALIZACIÓN ---
+  const hoy = new Date();
+  fechaInput.valueAsDate = hoy;
+  mesFiltro.value = hoy.toISOString().slice(0, 7);
+
+  cargarSelectUnidades();
+  renderTablaCatalogo();
+  guardarYRenderizar();
+  actualizarCampoActa();
+</script>
+</body>
+</html>
